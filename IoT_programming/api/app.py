@@ -26,6 +26,20 @@ def insert_user(user):
         conn.commit()
         return result.lastrowid
 
+def update_user(user_id, name, profile):
+    with current_app.database.connect() as conn:
+        with conn.begin():
+            user = conn.execute(text("""
+                UPDATE users SET
+                    name = :name,
+                    profile = :profile
+                WHERE id = :user_id
+            """), {
+                'user_id': user_id, 
+                'name': name, 
+                'profile': profile
+            })
+
 def get_user(user_id):
     with current_app.database.connect() as conn:
         user = conn.execute(text("""
@@ -44,6 +58,24 @@ def get_user(user_id):
         'email'   : user[2],
         'profile' : user[3]
     } if user else None
+
+def get_all_users():
+    with current_app.database.connect() as conn:
+        users = conn.execute(text("""
+            SELECT
+                id,
+                name,
+                email,
+                profile
+            FROM users
+        """)).fetchall()
+
+    return [{
+        'id'      : user[0],
+        'name'    : user[1],
+        'email'   : user[2],
+        'profile' : user[3]
+    } for user in users]
 
 def insert_tweet(user_tweet):
     with current_app.database.connect() as conn:
@@ -100,24 +132,6 @@ def get_timeline(user_id):
         'tweet'   : tweet[1]
     } for tweet in timeline]
 
-def get_all_users():
-    with current_app.database.connect() as conn:
-        users = conn.execute(text("""
-            SELECT
-                id,
-                name,
-                email,
-                profile
-            FROM users
-        """)).fetchall()
-
-    return [{
-        'id'      : user[0],
-        'name'    : user[1],
-        'email'   : user[2],
-        'profile' : user[3]
-   } for user in users]
-
 def delete_tweet(tweet_id):
     with current_app.database.begin() as conn:
         result = conn.execute(text("""
@@ -165,6 +179,24 @@ def create_app(test_config=None):
     @app.route('/users', methods=['GET'])
     def user_list():
         return jsonify(get_all_users())
+
+    @app.route('/user/<int:user_id>', methods=['PUT'])
+    def modify_user(user_id):
+        payload = request.json
+
+        name = payload.get('name')
+        profile = payload.get('profile')
+
+        user = get_user(user_id)
+        if user is None:
+            return '사용자가 존재하지 않습니다.', 404
+        
+        update_user(user_id, name, profile)
+        return jsonify({
+            'user_id' : user_id,
+            'name'    : name,
+            'profile' : profile
+        }), 200
 
     @app.route('/tweet', methods=['POST'])
     def tweet():
