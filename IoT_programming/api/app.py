@@ -99,6 +99,25 @@ def get_timeline(user_id):
         'user_id' : tweet[0],
         'tweet'   : tweet[1]
     } for tweet in timeline]
+
+def get_all_users():
+    with current_app.database.connect() as conn:
+        users = conn.execute(text("""
+            SELECT
+                id,
+                name,
+                email,
+                profile
+            FROM users
+        """)).fetchall()
+
+    return [{
+        'id'      : user[0],
+        'name'    : user[1],
+        'email'   : user[2],
+        'profile' : user[3]
+   } for user in users]
+
        
 
 def create_app(test_config=None):
@@ -129,6 +148,17 @@ def create_app(test_config=None):
         new_user_id = insert_user(new_user)
         new_user = get_user(new_user_id)
         return jsonify(new_user)
+
+    @app.route('/user/<int:user_id>', methods=['GET'])
+    def get_user_info(user_id):
+        user = get_user(user_id)
+        if user is None:
+           return '사용자가 존재하지 않습니다.', 404
+        return jsonify(user)
+
+    @app.route('/users', methods=['GET'])
+    def user_list():
+        return jsonify(get_all_users())
 
 
     @app.route('/tweet', methods=['POST'])
