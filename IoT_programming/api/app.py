@@ -91,6 +91,14 @@ def insert_tweet(user_tweet):
         conn.commit()
         return result.rowcount
 
+def delete_tweet(tweet_id):
+    with current_app.database.begin() as conn:
+        result = conn.execute(text("""
+            DELETE FROM tweets
+            WHERE id = :tweet_id
+        """), {'tweet_id': tweet_id})
+        return result.rowcount
+        
 def insert_follow(user_follow):
     with current_app.database.connect() as conn:
         result = conn.execute(text("""
@@ -131,14 +139,6 @@ def get_timeline(user_id):
         'user_id' : tweet[0],
         'tweet'   : tweet[1]
     } for tweet in timeline]
-
-def delete_tweet(tweet_id):
-    with current_app.database.begin() as conn:
-        result = conn.execute(text("""
-            DELETE FROM tweets
-            WHERE id = :tweet_id
-        """), {'tweet_id': tweet_id})
-        return result.rowcount
 
 def create_app(test_config=None):
     app = Flask(__name__)
