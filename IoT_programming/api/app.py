@@ -39,6 +39,7 @@ def update_user(user_id, name, profile):
                 'name': name, 
                 'profile': profile
             })
+    return result.rowcount
 
 def get_user(user_id):
     with current_app.database.connect() as conn:
