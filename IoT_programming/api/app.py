@@ -1,5 +1,6 @@
 from flask import Flask, request,jsonify
 from flask.json.provider import DefaultJSONProvider
+from sqlalchemy import create_engine, text
 import json
 
 class CustomJSONProvider(DefaultJSONProvider):
@@ -9,7 +10,7 @@ class CustomJSONProvider(DefaultJSONProvider):
 
         return super().default(obj)
 
-app = (Flask)(__name__)
+app = Flask(__name__)
 app.users = {}
 app.id_count = 1 
 app.tweets = []
@@ -95,17 +96,17 @@ def timeline(user_id):
 def create_app(test_config = None):
     app = Flask(__name__)
 
-    app.json_encoder = CustomJSONProvider
+    # app.json_encoder = CustomJSONProvider
 
     if test_config is None:
         app.config.from_pyfile("config.py")
     else:
         app.config.update(test_config)
 
-    database     = create_engine(app.config['DB_URL'], encoding = 'utf-8', max_overflow = 0)
+    database     = create_engine(app.config['DB_URL'], max_overflow = 0)
     app.database = database 
 
     return app
 
 if __name__ == "__main__":
-    app.run(host = "127.0.0.1", port=5000)
+    app.run(host = "0.0.0.0", port=5000)
