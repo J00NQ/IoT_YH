@@ -98,7 +98,7 @@ def delete_tweet(tweet_id):
             WHERE id = :tweet_id
         """), {'tweet_id': tweet_id})
         return result.rowcount
-        
+
 def insert_follow(user_follow):
     with current_app.database.connect() as conn:
         result = conn.execute(text("""
@@ -192,11 +192,7 @@ def create_app(test_config=None):
             return '사용자가 존재하지 않습니다.', 404
         
         update_user(user_id, name, profile)
-        return jsonify({
-            'user_id' : user_id,
-            'name'    : name,
-            'profile' : profile
-        }), 200
+        return jsonify(user), 200
 
     @app.route('/tweet', methods=['POST'])
     def tweet():
