@@ -6,17 +6,35 @@
 
     <meta charset="UTF-8">
 
-    <title>센서 데이터</title>
+    <title>센서 대시보드</title>
 
-    <meta http-equiv="refresh" content="5">
+    <meta http-equiv="refresh" content="10">
+
+    <style>
+
+        body  { font-family: sans-serif; margin: 40px; }
+
+        table { border-collapse: collapse; width: 100%; }
+
+        th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: center; }
+
+        th    { background-color: #4472C4; color: white; }
+
+        tr:nth-child(even) { background-color: #f2f2f2; }
+
+    </style>
 
 </head>
 
 <body>
 
-    <h1>센서 기록 (최근 10개)</h1>
+    <h1>🌡️ DHT11 센서 대시보드</h1>
 
-    <table border="1">
+    <p><a href="/collect">📥 지금 데이터 수집</a></p>
+
+    {% if records %}
+
+    <table>
 
         <tr>
 
@@ -25,6 +43,8 @@
             <th>온도 (°C)</th>
 
             <th>습도 (%)</th>
+
+            <th>상태</th>
 
             <th>측정 시각</th>
 
@@ -40,6 +60,24 @@
 
             <td>{{ row.humidity }}</td>
 
+            <td>
+
+                {% if row.temperature >= 28 %}
+
+                    🔴 더움
+
+                {% elif row.temperature <= 20 %}
+
+                    🔵 추움
+
+                {% else %}
+
+                    🟢 쾌적
+
+                {% endif %}
+
+            </td>
+
             <td>{{ row.recorded_at }}</td>
 
         </tr>
@@ -48,7 +86,11 @@
 
     </table>
 
-    <p><a href="/save">테스트 데이터 저장</a></p>
+    {% else %}
+
+        <p>저장된 데이터가 없습니다. 위 링크를 눌러 데이터를 수집하세요.</p>
+
+    {% endif %}
 
 </body>
 

@@ -1,4 +1,8 @@
-import pymysql
+import serial
+
+import time
+
+import mysql.connector
 
 from flask import Flask, render_template
 
@@ -6,25 +10,75 @@ app = Flask(__name__)
 
 def get_connection():
 
-    """MariaDB 연결 객체를 반환하는 함수"""
+    return mysql.connector.connect(
 
-    return pymysql.connect(
         host="localhost",
+
         user="pi",
+
         password="test1234",
-        database="sensor_db",
-        charset="utf8mb4"
+
+        database="sensor_db"
+
     )
 
-@app.route('/')
+def read_sensor():
 
-def index():
+    try:
+
+        ser = serial.Serial("/dev/ttyUSB0", 9600, timeout=2)
+
+        time.sleep(2)
+
+        line = ser.readline().decode("utf-8").strip()
+
+        ser.close()
+
+        parts = line.split(",")
+
+        return {
+
+            "temperature": float(parts[0]),
+
+            "humidity":    float(parts[1])
+
+        }
+
+    except Exception as e:
+
+        print("센서 오류:", e)
+
+        return None
+
+def save_to_db(temperature, humidity):
 
     conn   = get_connection()
 
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM sensor_data ORDER BY recorded_at DESC LIMIT 10")
+    sql    = "INSERT INTO sensor_data (temperature, humidity) VALUES (%s, %s)"
+
+    cursor.execute(sql, (temperature, humidity))
+
+    conn.commit()
+
+    cursor.close()
+
+    conn.close()
+
+def get_records(limit=10):
+
+    conn   = get_connection()
+
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute(
+
+        "SELECT * FROM sensor_data ORDER BY recorded_at DESC LIMIT %s",
+
+        (limit,)
+
+    )
 
     rows = cursor.fetchall()
 
@@ -32,34 +86,32 @@ def index():
 
     conn.close()
 
-    return render_template("index.html", records=rows)
+    return rows
 
-@app.route('/save')
+@app.route('/')
 
-def save():
+def index():
 
-    """가짜 센서 데이터를 DB에 저장 (나중에 실제 Serial 데이터로 교체)"""
+    records = get_records()
 
-    temperature = 25.3
+    return render_template("index.html", records=records)
 
-    humidity    = 60.5
+@app.route('/collect')
 
-    conn   = get_connection()
+def collect():
 
-    cursor = conn.cursor()
+    data = read_sensor()
 
-    sql = "INSERT INTO sensor_data (temperature, humidity) VALUES (%s, %s)"
+    if data:
 
-    cursor.execute(sql, (temperature, humidity))
+        save_to_db(data["temperature"], data["humidity"])
 
-    conn.commit()   # ← INSERT/UPDATE/DELETE 후 반드시 필요
+        return f"저장 완료: 온도 {data['temperature']}°C, 습도 {data['humidity']}%"
 
-    cursor.close()
+    else:
 
-    conn.close()
-
-    return "저장 완료!"
+        return "센서 데이터를 읽을 수 없습니다.", 500
 
 if __name__ == '__main__':
 
-    app.run(host="0.0.0.0", debug=True)   # host="0.0.0.0"
+    app.run(debug=True)
