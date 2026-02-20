@@ -1,9 +1,7 @@
 import serial
-
+import threading
 import time
-
 import mysql.connector
-
 from flask import Flask, render_template
 
 app = Flask(__name__)
@@ -112,6 +110,27 @@ def collect():
 
         return "센서 데이터를 읽을 수 없습니다.", 500
 
+def auto_collect(interval=10):
+
+    """interval초마다 센서 데이터를 자동으로 수집·저장"""
+
+    while True:
+
+        data = read_sensor()
+
+        if data:
+
+            save_to_db(data["temperature"], data["humidity"])
+
+            print(f"저장됨: {data['temperature']}°C, {data['humidity']}%")
+
+        time.sleep(interval)
+
+thread = threading.Thread(target=auto_collect, args=(10,), daemon=True)
+
+thread.start()
+
+
 if __name__ == '__main__':
 
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
