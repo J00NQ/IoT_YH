@@ -1,76 +1,65 @@
-from flask import Flask, render_template, jsonify
-from datetime import datetime
-import serial
-import time
+import pymysql
+
+from flask import Flask, render_template
 
 app = Flask(__name__)
 
-def read_sensor():
+def get_connection():
 
-    """Arduino에서 센서 데이터 1개를 읽어 딕셔너리로 반환"""
+    """MariaDB 연결 객체를 반환하는 함수"""
 
-    try:
-
-        ser = serial.Serial("/dev/ttyUSB0", 9600, timeout=2)
-
-        time.sleep(2)
-
-        line = ser.readline().decode("utf-8").strip()
-
-        ser.close()
-
-        humidity, celsius = line.split(',')
-
-        return {
-
-            "temperature": float(celsius),
-
-            "humidity":    float(humidity)
-
-        }
-
-    except Exception as e:
-
-        print("센서 오류:", e)
-
-        return {"temperature": None, "humidity": None}
-
+    return pymysql.connect(
+        host="localhost",
+        user="pi",
+        password="test1234",
+        database="sensor_db",
+        charset="utf8mb4"
+    )
 
 @app.route('/')
 
 def index():
-    data = read_sensor()
 
-    return render_template("index.html", sensor=data)
+    conn   = get_connection()
 
-    # data = {"temperature": 28.1, "humidity": 60.5}
-    # return render_template("index.html", sensor=data)
-    # records = [
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
 
-    #     # {"temperature": 25.3, "humidity": 60.5},
+    cursor.execute("SELECT * FROM sensor_data ORDER BY recorded_at DESC LIMIT 10")
 
-    #     # {"temperature": 27.1, "humidity": 58.2},
+    rows = cursor.fetchall()
 
-    #     # {"temperature": 29.4, "humidity": 55.0},
+    cursor.close()
 
-    #     # {"temperature": 23.8, "humidity": 65.3},
+    conn.close()
 
-    #     # {"temperature": 21, "humidity": 60}
+    return render_template("index.html", records=rows)
 
-    # ]
-    # now = datetime.now().strftime("%Y년 %m월 %d일 %H:%M")
+@app.route('/save')
 
-    # return render_template("index.html", records=records, now=now)
+def save():
 
+    """가짜 센서 데이터를 DB에 저장 (나중에 실제 Serial 데이터로 교체)"""
 
-@app.route('/api/sensor')
+    temperature = 25.3
 
-def api_sensor():
+    humidity    = 60.5
 
-    data = {"temperature": 25.3, "humidity": 60.5}
+    conn   = get_connection()
 
-    return jsonify(data)
+    cursor = conn.cursor()
+
+    sql = "INSERT INTO sensor_data (temperature, humidity) VALUES (%s, %s)"
+
+    cursor.execute(sql, (temperature, humidity))
+
+    conn.commit()   # ← INSERT/UPDATE/DELETE 후 반드시 필요
+
+    cursor.close()
+
+    conn.close()
+
+    return "저장 완료!"
 
 if __name__ == '__main__':
 
-    app.run(debug=True)
+    app.run(host="0.0.0.0", debug=True)   # host="0.0.0.0"

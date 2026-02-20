@@ -1,30 +1,54 @@
 <!DOCTYPE html>
 
-<html>
+<html lang="ko">
 
 <head>
 
-    <title>DHT11 센서</title>
+    <meta charset="UTF-8">
 
-    <meta http-equiv="refresh" content="5">  <!-- 5초마다 자동 새로고침 -->
+    <title>센서 데이터</title>
+
+    <meta http-equiv="refresh" content="5">
 
 </head>
 
 <body>
 
-    <h1>실시간 센서 데이터</h1>
+    <h1>센서 기록 (최근 10개)</h1>
 
-    {% if sensor.temperature %}
+    <table border="1">
 
-        <p>🌡️ 온도: {{ sensor.temperature }} °C</p>
+        <tr>
 
-        <p>💧 습도: {{ sensor.humidity }} %</p>
+            <th>ID</th>
 
-    {% else %}
+            <th>온도 (°C)</th>
 
-        <p>⚠️ 센서 데이터를 읽을 수 없습니다.</p>
+            <th>습도 (%)</th>
 
-    {% endif %}
+            <th>측정 시각</th>
+
+        </tr>
+
+        {% for row in records %}
+
+        <tr>
+
+            <td>{{ row.id }}</td>
+
+            <td>{{ row.temperature }}</td>
+
+            <td>{{ row.humidity }}</td>
+
+            <td>{{ row.recorded_at }}</td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+    <p><a href="/save">테스트 데이터 저장</a></p>
 
 </body>
 

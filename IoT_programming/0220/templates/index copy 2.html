@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <title>DHT11 센서</title>
+
+    <meta http-equiv="refresh" content="5">  <!-- 5초마다 자동 새로고침 -->
+
+</head>
+
+<body>
+
+    <h1>실시간 센서 데이터</h1>
+
+    {% if sensor.temperature %}
+
+        <p>🌡️ 온도: {{ sensor.temperature }} °C</p>
+
+        <p>💧 습도: {{ sensor.humidity }} %</p>
+
+    {% else %}
+
+        <p>⚠️ 센서 데이터를 읽을 수 없습니다.</p>
+
+    {% endif %}
+
+</body>
+
+</html>
