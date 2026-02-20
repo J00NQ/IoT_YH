@@ -19,13 +19,13 @@ def read_sensor():
 
         ser.close()
 
-        parts = line.split(",")
-
+        humidity, celsius = line.split(',')
+        
         return {
 
-            "temperature": float(parts[0]),
+            "temperature": float(humidity),
 
-            "humidity":    float(parts[1])
+            "humidity":    float(celsius)
 
         }
 
