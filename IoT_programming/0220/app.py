@@ -9,37 +9,23 @@ app = Flask(__name__)
 def get_connection():
 
     return mysql.connector.connect(
-
         host="localhost",
-
         user="pi",
-
         password="test1234",
-
         database="sensor_db"
-
     )
 
 def read_sensor():
 
     try:
-
         ser = serial.Serial("/dev/ttyUSB0", 9600, timeout=2)
-
         time.sleep(2)
-
         line = ser.readline().decode("utf-8").strip()
-
         ser.close()
-
-        parts = line.split(",")
-
+        celsius, humidity = line.split(",")
         return {
-
-            "temperature": float(parts[0]),
-
-            "humidity":    float(parts[1])
-
+            "temperature": float(celsius),
+            "humidity":    float(humidity)
         }
 
     except Exception as e:
@@ -90,9 +76,25 @@ def get_records(limit=10):
 
 def index():
 
-    records = get_records()
+    conn = get_connection()
 
-    return render_template("index.html", records=records)
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM sensor_data ORDER BY recorded_at DESC LIMIT 10")
+
+    records = cursor.fetchall()
+
+    cursor.execute(
+        "SELECT AVG(temperature) AS avg_temp, MAX(temperature) AS max_temp, MIN(temperature) AS min_temp FROM sensor_data"
+    )
+
+    stats = cursor.fetchone()   # fetchall() 말고 fetchone() — 결과가 1행일 때
+
+    cursor.close()
+
+    conn.close()
+
+    return render_template("index.html", records=records, stats=stats)
 
 @app.route('/collect')
 

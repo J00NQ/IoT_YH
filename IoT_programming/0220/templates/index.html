@@ -33,6 +33,53 @@
     <p><a href="/collect">📥 지금 데이터 수집</a></p>
 
     {% if records %}
+    
+    {% if records %}
+
+    <div style="display:flex; gap:40px; margin-bottom:20px;">
+
+        <div>
+
+            <strong>총 측정 횟수</strong><br>
+
+            {{ records | length }} 회
+
+        </div>
+
+        <div>
+
+            <strong>최근 온도</strong><br>
+
+            {{ records[0].temperature }} °C
+
+        </div>
+
+        <div>
+
+            <strong>최근 습도</strong><br>
+
+            {{ records[0].humidity }} %
+
+        </div>
+        <div>
+            <strong>평균 온도</strong><br>
+
+            {{ stats.avg_temp | round(1) }}°C
+        </div>
+        <div>
+            <strong>최고 온도</strong><br>
+
+            {{ stats.max_temp }}°C
+        </div>
+        <div>
+            <strong>최저 온도</strong><br>
+
+            {{ stats.min_temp }}°C
+        </div>
+    </div>
+
+    {% endif %}
+
 
     <table>
 
