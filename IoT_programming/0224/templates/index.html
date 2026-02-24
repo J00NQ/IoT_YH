@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <title>센서 데이터</title>
+
+    <meta http-equiv="refresh" content="5">
+
+</head>
+
+<body>
+
+    <h1>센서 기록</h1>
+
+    <p> 측정 시각  : {{ now }}</p>
+
+    {% if sensor.temperature %}
+
+        <p> 온도 : {{ sensor.temperature }} C</p>
+
+        <p> 습도 : {{ sensor.humidity }} %</p>
+
+        {% if sensor.temperature >= 28 %}
+
+            <p> 더움 </p>
+
+        {% elif sensor.temperature >= 24 %}
+
+            <p> 보통 </p>
+
+        {% else %}
+
+            <p> 쾌적 </p>
+
+        {% endif %}
+
+    {% else %}
+
+        <p> 센서 데이터를 기다리는 중... </p>
+
+    {% endif %}
+
+</body>
+
+</html>
