@@ -1,0 +1,49 @@
+#include <WiFi.h>
+#include <DHT.h>
+
+const char* ssid = "5층";
+const char* password = "48864886";
+const char* host = "192.168.0.54"; // 라즈베리 파이 IP
+const uint16_t port = 5001;        // 소켓 서버 포트
+
+#define LED_PIN 2
+#define DHTPIN 4
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(115200);
+  dht.begin();
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) delay(500);
+}
+
+void loop() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  if (!isnan(h) && !isnan(t)) {
+    WiFiClient client;
+    if (client.connect(host, port)) {
+      // 1. 서버로 데이터 전송
+      client.print(String(t) + "," + String(h));
+      
+      // 2. 서버의 응답(LED 명령) 기다리기
+      unsigned long timeout = millis();
+      while (client.available() == 0) {
+        if (millis() - timeout > 2000) break; // 2초 타임아웃
+      }
+      
+      String response = client.readString();
+      Serial.println("Server Command: " + response);
+
+      // 3. LED 제어
+      if (response == "ON") digitalWrite(LED_PIN, HIGH);
+      else if (response == "OFF") digitalWrite(LED_PIN, LOW);
+
+      client.stop();
+    }
+  }
+  delay(2000); // 2초마다 갱신
+}
