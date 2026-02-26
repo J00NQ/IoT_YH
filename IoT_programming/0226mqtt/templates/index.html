@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32 Weather Station</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div style="width: 80%; margin: auto;">
+        <canvas id="myChart"></canvas>
+    </div>
+    <div style="text-align: center; margin-top: 30px;">
+        <h3>LED Control</h3>
+        <button onclick="sendLED('ON')" style="background-color: #ff4d4d; color: white; padding: 15px 30px; border: none; cursor: pointer;">LED ON</button>
+        
+        <button onclick="sendLED('OFF')" style="background-color: #333; color: white; padding: 15px 30px; border: none; cursor: pointer;">LED OFF</button>
+    </div>
+    <script>
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Temperature (°C)',
+                    borderColor: 'rgb(255, 99, 132)',
+                    data: []
+                }, {
+                    label: 'Humidity (%)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    data: []
+                }]
+            }
+        });
+
+        // 3초마다 서버에서 데이터를 새로 가져와 차트 업데이트
+        setInterval(() => {
+            fetch('/get_data')
+                .then(response => response.json())
+                .then(data => {
+                    myChart.data.labels = data.map((_, i) => i);
+                    myChart.data.datasets[0].data = data.map(d => d.temperature);
+                    myChart.data.datasets[1].data = data.map(d => d.humidity);
+                    myChart.update();
+                });
+        }, 3000);
+
+        function sendLED(ledStatus) {
+            // Flask 서버의 /control_led 경로로 요청을 보냄
+            fetch('/control_led', {
+                method: 'POST', // 데이터를 보낼 때는 POST 방식 사용
+                headers: {
+                    'Content-Type': 'application/json' // 우리가 보내는 데이터가 JSON 형식임을 알림
+                },
+                body: JSON.stringify({ status: ledStatus }) // 'ON' 또는 'OFF'를 JSON 데이터로 변환
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("서버 응답:", data);
+                if(data.result === "success") {
+                    alert("LED가 " + ledStatus + " 되었습니다.");
+                }
+            })
+            .catch(error => console.error('에러 발생:', error));
+        }
+    </script>
+
+</body>
+</html>

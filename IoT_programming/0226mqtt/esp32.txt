@@ -1,0 +1,119 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <DHT.h>
+
+// 1. 설정 (사용자 환경에 맞게 수정)
+const char *ssid = "5층"; 
+const char *password = "48864886";
+const char *mqtt_server = "192.168.0.54"; // 라즈베리 파이 IP
+
+#define DHTPIN 4       // DHT11 연결 핀
+#define DHTTYPE DHT11  // 센서 종류
+#define LED_PIN 2      // ESP32 내장 LED (또는 제어할 LED 핀)
+
+DHT dht(DHTPIN, DHTTYPE);
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+unsigned long lastMsg = 0;
+
+// 2. WiFi 연결 함수
+void setup_wifi() {
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi connected");
+}
+
+// 3. MQTT 메시지 수신 시 실행되는 콜백 함수 (서버 -> ESP32)
+void callback(char* topic, byte* payload, unsigned int length) {
+  String message = "";
+  for (int i = 0; i < length; i++) message += (char)payload[i];
+  
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] : ");
+  Serial.println(message);
+
+  // LED 제어 로직
+  if (String(topic) == "room/light") {
+    if (message == "on") {
+      digitalWrite(LED_PIN, HIGH);
+      Serial.println("LED turned ON");
+    } else if (message == "off") {
+      digitalWrite(LED_PIN, LOW);
+      Serial.println("LED turned OFF");
+    }
+  }
+}
+
+// 4. MQTT 재접속 함수
+void reconnect() {
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    if (client.connect("ESP32_Client")) {
+      Serial.println("connected");
+      // 제어 명령을 받기 위해 토픽 구독
+      client.subscribe("room/light");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      delay(5000);
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(LED_PIN, OUTPUT);
+  dht.begin();
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
+}
+
+void loop() {
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+
+  // 5. 3초마다 센서 데이터 읽기 및 발행 (ESP32 -> 서버)
+  unsigned long now = millis();
+  if (now - lastMsg > 3000) {
+    lastMsg = now;
+
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+
+    if (isnan(h) || isnan(t)) {
+      Serial.println("Failed to read from DHT sensor!");
+      return;
+    }
+
+    // "온도,습도" 형식의 문자열 생성
+    String payload = String(t) + "," + String(h);
+    client.publish("room/data", payload.c_str());
+    
+    Serial.print("Published Data: ");
+    Serial.println(payload);
+  }
+
+  // 6. 시리얼 모니터 입력 전송 기능 (추가 요청 사항)
+  if (Serial.available() > 0) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    if (input.length() > 0) {
+      client.publish("room/light", input.c_str());
+      Serial.println("Serial Command Sent: " + input);
+    }
+  }
+}
