@@ -75,6 +75,7 @@ void setup(){
 
 void loop(){
   webSocket.loop();
+  
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval){
     previousMillis = currentMillis;
