@@ -8,12 +8,26 @@
     <div style="width: 80%; margin: auto;">
         <canvas id="myChart"></canvas>
     </div>
+
     <div style="text-align: center; margin-top: 30px;">
         <h3>LED Control</h3>
         <button onclick="sendLED('ON')" style="background-color: #ff4d4d; color: white; padding: 15px 30px; border: none; cursor: pointer;">LED ON</button>
-        
         <button onclick="sendLED('OFF')" style="background-color: #333; color: white; padding: 15px 30px; border: none; cursor: pointer;">LED OFF</button>
     </div>
+
+    <hr style="width: 80%; margin: 40px auto;">
+    
+    <div style="text-align: center; margin-top: 30px; padding: 20px; border: 1px dashed #ccc; width: 50%; margin-left: auto; margin-right: auto;">
+        <h3>Custom MQTT Message</h3>
+        <div style="margin-bottom: 10px;">
+            <input type="text" id="customTopic" placeholder="Topic (예: room/light)" style="padding: 10px; width: 70%;">
+        </div>
+        <div style="margin-bottom: 10px;">
+            <input type="text" id="customMessage" placeholder="Message (예: toggle)" style="padding: 10px; width: 70%;">
+        </div>
+        <button onclick="sendMQTT()" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; cursor: pointer;">Send Message</button>
+    </div>
+
     <script>
         const ctx = document.getElementById('myChart').getContext('2d');
         const myChart = new Chart(ctx, {
@@ -45,24 +59,43 @@
         }, 3000);
 
         function sendLED(ledStatus) {
-            // Flask 서버의 /control_led 경로로 요청을 보냄
             fetch('/control_led', {
-                method: 'POST', // 데이터를 보낼 때는 POST 방식 사용
-                headers: {
-                    'Content-Type': 'application/json' // 우리가 보내는 데이터가 JSON 형식임을 알림
-                },
-                body: JSON.stringify({ status: ledStatus }) // 'ON' 또는 'OFF'를 JSON 데이터로 변환
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: ledStatus })
             })
             .then(response => response.json())
             .then(data => {
-                console.log("서버 응답:", data);
                 if(data.result === "success") {
                     alert("LED가 " + ledStatus + " 되었습니다.");
                 }
             })
             .catch(error => console.error('에러 발생:', error));
         }
-    </script>
 
+        // 추가된 자유 전송 함수
+        function sendMQTT() {
+            const topic = document.getElementById('customTopic').value;
+            const message = document.getElementById('customMessage').value;
+
+            if(!topic || !message) {
+                alert("토픽과 메시지를 모두 입력해주세요.");
+                return;
+            }
+
+            fetch('/publish', {  // app.py에 추가할 /publish 경로
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic: topic, message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.result === "success") {
+                    alert("성공적으로 메시지를 보냈습니다!");
+                }
+            })
+            .catch(error => console.error('에러 발생:', error));
+        }
+    </script>
 </body>
 </html>

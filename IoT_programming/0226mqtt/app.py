@@ -4,7 +4,8 @@ import json
 
 app = Flask(__name__)
 data_history = []
-MQTT_BROKER = "localhost" # 라즈베리 파이 자신
+# MQTT_BROKER = "localhost" # 라즈베리 파이 자신
+MQTT_BROKER = "broker.emqx.io" 
 MQTT_TOPIC_DATA = "room/data"
 MQTT_TOPIC_LED = "room/light"
 
@@ -41,6 +42,22 @@ def control_led():
     # Flask 서버가 MQTT 발행자(Publisher)가 되어 ESP32에게 명령 전송
     mqtt_client.publish(MQTT_TOPIC_LED, status)
     return jsonify({"result": "success", "status": status})
+
+@app.route('/publish', methods=['POST'])
+def publish_message():
+    # 클라이언트로부터 JSON 데이터를 받음
+    data = request.json
+    topic = data.get('topic')
+    message = data.get('message')
+
+    if not topic or message is None:
+        return jsonify({"result": "fail", "error": "Missing topic or message"}), 400
+
+    # 입력받은 토픽과 메시지로 MQTT 발행
+    mqtt_client.publish(topic, message)
+    print(f"MQTT Sent -> Topic: {topic}, Message: {message}")
+    
+    return jsonify({"result": "success", "topic": topic, "message": message})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
